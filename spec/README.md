@@ -1,0 +1,1 @@
+# GuiQL Language Specification
