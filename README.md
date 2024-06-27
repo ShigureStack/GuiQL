@@ -1,4 +1,4 @@
-# GuiQL - The experimental query based gui library.
+# GuiQL - The experimental query language for building user interfaces.
 
 ## Getting started
 
