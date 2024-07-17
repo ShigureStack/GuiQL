@@ -11,9 +11,12 @@
 ## Reserved keywords
 
 ```
+create
 component
+delete
 else
 enum
+from
 for
 func
 if
@@ -25,4 +28,5 @@ string
 tag
 type
 with
+or
 ```

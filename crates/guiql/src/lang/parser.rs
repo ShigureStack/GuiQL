@@ -1,4 +1,5 @@
-pub struct Parser {}
+pub struct Parser {
+}
 
 impl Parser {
     pub fn new() -> Self {
