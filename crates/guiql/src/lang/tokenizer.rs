@@ -1,10 +1,17 @@
 use std::{iter::Peekable, str::Chars};
 use crate::lang::ast::*;
 
+#[derive(Debug, Clone, Copy)]
+pub enum TokenizerErr {
+    UnterminatedStringLiteral,
+}
+
+pub type TokenResult = Result<Token, TokenizerErr>;
+
 pub struct Tokenizer<'a>
 {
     itr: Peekable<Chars<'a>>,
-    pending: Option<String>,
+    pending: Option<Token>,
     current_idx: u32,
     full_idx_count: u32,
 }
@@ -21,9 +28,9 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn lex_number_literal(&mut self) -> Token {
+    fn lex_number_literal(&mut self) -> TokenResult {
         let mut loc = TokenLoc {
-            starts_at: 0,
+            starts_at: self.current_idx,
             len: 0,
         };
 
@@ -40,30 +47,76 @@ impl<'a> Tokenizer<'a> {
         };
 
         loc.len = len;
-        Token {
+        Ok(Token {
             loc,
             con: TokenContent::NumberLiteral(literal),
+        })
+    }
+
+    fn lex_string_literal(&mut self) -> TokenResult {
+        let mut literal = String::new();
+        let mut loc = TokenLoc {
+            starts_at: self.current_idx,
+            len: 0,
+        };
+        let mut inner_quotation_mark = false;
+        while let Some(&c) = self.itr.peek() {
+            literal.push(c);
+            self.next_char();
+            loc.len += 1;
+            if c == '\"' {
+                if inner_quotation_mark {
+                    break;
+                } else {
+                    inner_quotation_mark = true;
+                }
+            }
+        };
+
+        if inner_quotation_mark {
+            Err(TokenizerErr::UnterminatedStringLiteral)
+        } else {
+            Ok(Token {
+                loc,
+                con: TokenContent::StringLiteral(literal),
+            })
         }
     }
 
     fn lex_reserved(&mut self) -> Option<Token> {
         let mut word = String::new();
+        let mut loc = TokenLoc {
+            starts_at: self.current_idx,
+            len: 0,
+        };
         while let Some(&c) = self.itr.peek() {
             if c.is_alphabetic() {
                 word.push(c);
                 if let Some(con) = TokenContent::from_str(word.as_str()) {
-                    return Token {
-                    };
-                }
+                    return Some(Token {
+                        loc,
+                        con
+                    });
+                };
                 self.next_char();
+                loc.len += 1;
             } else {
+                return None;
             }
         };
         None
     }
 
     fn lex_identifier(&mut self) -> Token {
-        todo!();
+        let mut word = String::new();
+        let mut loc = TokenLoc {
+            starts_at: self.current_idx,
+            len: 0,
+        };
+
+        if let Some(pending) = self.pending {
+            loc = pending.loc;
+        };
     }
 
     fn lex_alphabetical_chars(&mut self) -> Token {
