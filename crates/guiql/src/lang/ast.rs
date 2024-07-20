@@ -1,4 +1,4 @@
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Clone, Copy, Debug)]
 pub struct TokenLoc {
     pub starts_at: u32,
     pub len: u32,
@@ -8,12 +8,17 @@ pub struct TokenLoc {
 pub enum TokenContent {
     NumberLiteral(String),
     StringLiteral(String),
+    Identifier(String),
+    Const,
+    Pub,
     Reserved,
 }
 
 impl TokenContent {
     pub fn from_str(word: &str) -> Option<Self> {
         match word {
+            "const" => Some(Self::Const),
+            "pub" => Some(Self::Pub),
             _ => None,
         }
     }
