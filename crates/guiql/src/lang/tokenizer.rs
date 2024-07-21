@@ -142,6 +142,8 @@ impl<'a> Tokenizer<'a> {
         while let Some(&c) = self.itr.peek() {
             if c.is_whitespace() {
                 break;
+            } else if c == ';' {
+                break;
             }
 
             word.push(c);

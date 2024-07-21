@@ -9,9 +9,10 @@ pub enum TokenContent {
     NumberLiteral(String),
     StringLiteral(String),
     Identifier(String),
+    BraceLeft,
+    BraceRight,
     Const,
     Pub,
-    Reserved,
 }
 
 impl TokenContent {
