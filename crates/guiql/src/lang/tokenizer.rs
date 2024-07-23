@@ -41,7 +41,7 @@ impl<'a> Tokenizer<'a> {
             if c.is_digit(10) {
                 literal.push(c);
                 len += 1;
-                self.next_char();
+                self.advance();
             } else {
                 break;
             }
@@ -63,7 +63,7 @@ impl<'a> Tokenizer<'a> {
         let mut inner_quotation_mark = false;
         while let Some(&c) = self.itr.peek() {
             literal.push(c);
-            self.next_char();
+            self.advance();
             loc.len += 1;
             if c == '\"' {
                 if inner_quotation_mark {
@@ -99,7 +99,7 @@ impl<'a> Tokenizer<'a> {
                         con
                     }));
                 };
-                self.next_char();
+                self.advance();
                 loc.len += 1;
             } else {
                 self.pending.replace(Some(Token {
@@ -165,6 +165,10 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    fn advance(&mut self) {
+       self.next_char();
+    }
+
     fn next_char(&mut self) {
         self.itr.next();
 
@@ -179,13 +183,13 @@ impl<'a> Tokenizer<'a> {
     pub fn next(&mut self) -> Option<TokenResult> {
         while let Some(&c) = self.itr.peek() {
             if c.is_whitespace() {
-                self.next_char();
+                self.advance();
                 continue;
             } else if c.is_digit(10) {
                 return Some(self.lex_number_literal());
             } else if c.is_alphabetic() {
                 return Some(self.lex_alphabetical_chars());
-            } else {
+            }
                 break;
             }
         };

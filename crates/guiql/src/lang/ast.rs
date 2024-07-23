@@ -23,6 +23,14 @@ impl TokenContent {
             _ => None,
         }
     }
+
+    pub fn from_char(c: char) -> Option<Self> {
+        match c {
+            '{' => Some(Self::BraceLeft),
+            '}' => Some(Self::BraceRight),
+            _ => None,
+        }
+    }
 }
 
 #[derive(PartialEq, Clone, Debug)]
