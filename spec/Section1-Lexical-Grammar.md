@@ -13,6 +13,7 @@
 ```
 create
 component
+const
 delete
 else
 enum
@@ -22,6 +23,7 @@ func
 if
 int
 key
+let
 match
 number
 string
@@ -29,4 +31,5 @@ tag
 type
 with
 or
+pub
 ```
