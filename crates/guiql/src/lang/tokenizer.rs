@@ -190,8 +190,6 @@ impl<'a> Tokenizer<'a> {
             } else if c.is_alphabetic() {
                 return Some(self.lex_alphabetical_chars());
             }
-                break;
-            }
         };
         None
     }
