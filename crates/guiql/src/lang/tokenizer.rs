@@ -60,21 +60,20 @@ impl<'a> Tokenizer<'a> {
             starts_at: self.current_idx,
             len: 0,
         };
-        let mut inner_quotation_mark = false;
+        let mut quotation_mark_count = 0;
         while let Some(&c) = self.itr.peek() {
             literal.push(c);
             self.advance();
             loc.len += 1;
             if c == '\"' {
-                if inner_quotation_mark {
+                if quotation_mark_count >= 2 {
                     break;
-                } else {
-                    inner_quotation_mark = true;
                 }
+                quotation_mark_count += 1;
             }
         };
 
-        if inner_quotation_mark {
+        if quotation_mark_count < 2 {
             Err(TokenizerErr::UnterminatedStringLiteral)
         } else {
             Ok(Token {
@@ -234,5 +233,21 @@ mod test {
             tokens.push(token.unwrap());
         };
         assert!(tokens[1] == expected, "Unexpected result with a number literal.");
+    }
+
+    #[test]
+    fn string_literal() {
+        let expected = Token {
+            loc: TokenLoc {
+                starts_at: 0,
+                len: 14,
+            },
+            con: TokenContent::StringLiteral("\"hello, world\"".to_string()),
+        };
+
+        let mut tokenizer = Tokenizer::new("\"hello, world\"");
+        while let Some(token) = tokenizer.next() {
+            assert!(token.unwrap() == expected, "Unexpected result with a string literal.");
+        };
     }
 }
