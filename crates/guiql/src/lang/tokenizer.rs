@@ -202,7 +202,7 @@ mod test {
     use super::*;
 
     #[test]
-    fn lex_decimal_digits() {
+    fn decimal_digits() {
         let expected = Token {
             loc: TokenLoc {
                 starts_at: 0,
