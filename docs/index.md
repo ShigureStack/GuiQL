@@ -1,5 +1,4 @@
 ---
-# https://vitepress.dev/reference/default-theme-home-page
 layout: home
 
 hero:
@@ -8,17 +7,16 @@ hero:
   actions:
     - theme: brand
       text: Getting started
-      link: /markdown-examples
+      link: /getting-started
     - theme: alt
       text: Language spec
       link: "https://github.com/guiquery/GuiQL/tree/main/spec"
 
 features:
-  - title: Feature A
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature B
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-  - title: Feature C
-    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+  - title: Designed for GUI
+    details: Write GUI codes with well-designed language. Simplify your GUI codes.
+  - title: Platform-independent
+    details: Runs on cross-platform runtime. You can implement your own.
+  - title: Integrable
+    details: Integrable with exsisting project. Supports any programming language.
 ---
-
