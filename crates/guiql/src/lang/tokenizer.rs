@@ -202,18 +202,16 @@ mod test {
 
     #[test]
     fn decimal_digits() {
-        let expected = Token {
-            loc: TokenLoc {
-                starts_at: 0,
-                len: 2,
-            },
-            con: TokenContent::NumberLiteral("91".to_string()),
-        };
-
-        let mut tokenizer = Tokenizer::new("91");
-        while let Some(token) = tokenizer.next() {
-            assert!(token.unwrap() == expected, "Unexpected result with a number literal.");
-        };
+        assert!(QueryTest::new("numeric literals",
+                vec![Token {
+                    loc: TokenLoc {
+                        starts_at: 0,
+                        len: 2,
+                    },
+                    con: TokenContent::NumberLiteral("91".to_string()),
+                }],
+                "91",
+            ).run().is_ok());
     }
 
     #[test]
@@ -249,5 +247,89 @@ mod test {
         while let Some(token) = tokenizer.next() {
             assert!(token.unwrap() == expected, "Unexpected result with a string literal.");
         };
+    }
+
+    struct QueryTest<'a> {
+        name: &'a str,
+        expected: Vec<Token>,
+        query: &'a str,
+    }
+
+    impl<'a> QueryTest<'a> {
+        pub fn new(name: &'a str, expected: Vec<Token>, query: &'a str) -> Self {
+            Self {
+                name,
+                expected,
+                query,
+            }
+        }
+
+        pub fn run(&self) -> QueryTestResult {
+            let mut tokenizer = Tokenizer::new(self.query);
+            let mut i: usize = 0;
+            while let Some(token) = tokenizer.next() {
+                match token {
+                    Ok(token) => {
+                        if token != self.expected[i] {
+                            println!("{}: Failed with unexpected token\n- Expected:\n{:?}\n- Result:\n{:?}", self.name, self.expected[i], token);
+                            return Err(QueryTestErr::UnexpectedToken);
+                        }
+                    },
+                    Err(err) => {
+                        println!("{}: Failed with tokenizer error\n- Error:\n{:?}", self.name, err);
+                        return Err(QueryTestErr::TokenizerError);
+                    }
+                }
+                i += 1;
+            };
+            println!("{}: Passed", self.name);
+            Ok(())
+        }
+    }
+
+    enum QueryTestErr {
+        TokenizerError,
+        UnexpectedToken,
+    }
+
+    type QueryTestResult = Result<(), QueryTestErr>;
+
+    struct QueryTester<'a> {
+        tests: Vec<QueryTest<'a>>,
+    }
+
+    impl<'a> QueryTester<'a> {
+        pub fn new() -> Self {
+            Self {
+                tests: Vec::new(),
+            }
+        }
+
+        pub fn add_test(&mut self, test: QueryTest<'a>) {
+            self.tests.push(test);
+        }
+
+        pub fn run_all(&mut self) {
+            for test in &self.tests {
+                assert!(test.run().is_ok());
+            }
+        }
+    }
+
+    #[test]
+    fn lex_queries() {
+        let mut tester = QueryTester::new();
+        tester.add_test(QueryTest::new("numeric literals",
+            vec![Token {
+                loc: TokenLoc {
+                    starts_at: 0,
+                    len: 2,
+                },
+                con: TokenContent::NumberLiteral("91".to_string()),
+            }],
+            "91",
+        ));
+
+        tester.run_all();
     }
 }
