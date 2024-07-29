@@ -200,55 +200,6 @@ impl<'a> Tokenizer<'a> {
 mod test {
     use super::*;
 
-    #[test]
-    fn decimal_digits() {
-        assert!(QueryTest::new("numeric literals",
-                vec![Token {
-                    loc: TokenLoc {
-                        starts_at: 0,
-                        len: 2,
-                    },
-                    con: TokenContent::NumberLiteral("91".to_string()),
-                }],
-                "91",
-            ).run().is_ok());
-    }
-
-    #[test]
-    fn multiple_tokens() {
-        let expected = Token {
-            loc: TokenLoc {
-                starts_at: 2,
-                len: 2,
-            },
-            con: TokenContent::NumberLiteral("91".to_string()),
-        };
-
-        let mut tokenizer = Tokenizer::new("x 91");
-        let mut tokens = Vec::new();
-        while let Some(token) = tokenizer.next() {
-            println!("{:?}", token.clone().unwrap());
-            tokens.push(token.unwrap());
-        };
-        assert!(tokens[1] == expected, "Unexpected result with a number literal.");
-    }
-
-    #[test]
-    fn string_literal() {
-        let expected = Token {
-            loc: TokenLoc {
-                starts_at: 0,
-                len: 14,
-            },
-            con: TokenContent::StringLiteral("\"hello, world\"".to_string()),
-        };
-
-        let mut tokenizer = Tokenizer::new("\"hello, world\"");
-        while let Some(token) = tokenizer.next() {
-            assert!(token.unwrap() == expected, "Unexpected result with a string literal.");
-        };
-    }
-
     struct QueryTest<'a> {
         name: &'a str,
         expected: Vec<Token>,
@@ -314,6 +265,55 @@ mod test {
                 assert!(test.run().is_ok());
             }
         }
+    }
+
+    #[test]
+    fn decimal_digits() {
+        assert!(QueryTest::new("numeric literals",
+                vec![Token {
+                    loc: TokenLoc {
+                        starts_at: 0,
+                        len: 2,
+                    },
+                    con: TokenContent::NumberLiteral("91".to_string()),
+                }],
+                "91",
+            ).run().is_ok());
+    }
+
+    #[test]
+    fn multiple_tokens() {
+        assert!(QueryTest::new("multiple tokens",
+                vec![Token {
+                    loc: TokenLoc {
+                        starts_at: 0,
+                        len: 1,
+                    },
+                    con: TokenContent::Identifier("x".to_string()),
+                },
+                Token {
+                    loc: TokenLoc {
+                        starts_at: 2,
+                        len: 2,
+                    },
+                    con: TokenContent::NumberLiteral("91".to_string()),
+                }],
+                "x 91",
+        ).run().is_ok());
+    }
+
+    #[test]
+    fn string_literal() {
+        assert!(QueryTest::new("string literal",
+                vec![Token {
+                    loc: TokenLoc {
+                        starts_at: 0,
+                        len: 14,
+                    },
+                    con: TokenContent::StringLiteral("\"hello, world\"".to_string()),
+                }],
+                "\"hello, world\"",
+        ).run().is_ok());
     }
 
     #[test]
