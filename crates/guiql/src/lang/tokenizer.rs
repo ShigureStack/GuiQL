@@ -5,6 +5,8 @@ use crate::lang::ast::*;
 pub enum TokenizerErr {
     UnterminatedStringLiteral,
     UnexpectedToken,
+    EmptyElementIdentifier,
+    InvalidElementIdentifier
 }
 
 pub type TokenResult = Result<Token, TokenizerErr>;
@@ -38,10 +40,10 @@ impl<'a> Tokenizer<'a> {
         let mut literal = String::new();
         let mut len = 0;
         while let Some(&c) = self.itr.peek() {
+            self.advance();
             if c.is_digit(10) {
                 literal.push(c);
                 len += 1;
-                self.advance();
             } else {
                 break;
             }
@@ -91,6 +93,8 @@ impl<'a> Tokenizer<'a> {
         };
         while let Some(&c) = self.itr.peek() {
             if c.is_alphabetic() {
+                self.advance();
+                loc.len += 1;
                 word.push(c);
                 if let Some(con) = TokenContent::from_str(word.as_str()) {
                     return Some(Ok(Token {
@@ -98,8 +102,6 @@ impl<'a> Tokenizer<'a> {
                         con
                     }));
                 };
-                self.advance();
-                loc.len += 1;
             } else {
                 self.pending.replace(Some(Token {
                     loc,
@@ -164,6 +166,48 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    fn lex_element_identifier(&mut self) -> TokenResult {
+        if let Some(&c) = self.itr.peek() {
+            let mut loc = TokenLoc {
+                starts_at: self.current_idx,
+                len: 0,
+            };
+            if c != '@' {
+                return Err(TokenizerErr::InvalidElementIdentifier);
+            }
+
+            let mut identifier = String::new();
+
+            identifier.push(c);
+            self.advance();
+            loc.len += 1;
+
+            while let Some(&c) = self.itr.peek() {
+                if c.is_whitespace() {
+                    break;
+                } else if c.is_alphabetic() {
+                    identifier.push(c);
+                } else {
+                    break;
+                }
+
+                self.advance();
+                loc.len += 1;
+            }
+
+            if identifier.is_empty() {
+                return Err(TokenizerErr::EmptyElementIdentifier);
+            }
+
+            return Ok(Token {
+                loc,
+                con: TokenContent::Element(identifier),
+            });
+        } else {
+            return Err(TokenizerErr::InvalidElementIdentifier);
+        }
+    }
+
     fn advance(&mut self) {
        self.next_char();
     }
@@ -190,6 +234,8 @@ impl<'a> Tokenizer<'a> {
                 return Some(self.lex_alphabetical_chars());
             } else if c == '"' {
                 return Some(self.lex_string_literal());
+            } else if c == '@' {
+                return Some(self.lex_element_identifier());
             }
         };
         None
@@ -199,55 +245,6 @@ impl<'a> Tokenizer<'a> {
 #[cfg(test)]
 mod test {
     use super::*;
-
-    #[test]
-    fn decimal_digits() {
-        assert!(QueryTest::new("numeric literals",
-                vec![Token {
-                    loc: TokenLoc {
-                        starts_at: 0,
-                        len: 2,
-                    },
-                    con: TokenContent::NumberLiteral("91".to_string()),
-                }],
-                "91",
-            ).run().is_ok());
-    }
-
-    #[test]
-    fn multiple_tokens() {
-        let expected = Token {
-            loc: TokenLoc {
-                starts_at: 2,
-                len: 2,
-            },
-            con: TokenContent::NumberLiteral("91".to_string()),
-        };
-
-        let mut tokenizer = Tokenizer::new("x 91");
-        let mut tokens = Vec::new();
-        while let Some(token) = tokenizer.next() {
-            println!("{:?}", token.clone().unwrap());
-            tokens.push(token.unwrap());
-        };
-        assert!(tokens[1] == expected, "Unexpected result with a number literal.");
-    }
-
-    #[test]
-    fn string_literal() {
-        let expected = Token {
-            loc: TokenLoc {
-                starts_at: 0,
-                len: 14,
-            },
-            con: TokenContent::StringLiteral("\"hello, world\"".to_string()),
-        };
-
-        let mut tokenizer = Tokenizer::new("\"hello, world\"");
-        while let Some(token) = tokenizer.next() {
-            assert!(token.unwrap() == expected, "Unexpected result with a string literal.");
-        };
-    }
 
     struct QueryTest<'a> {
         name: &'a str,
@@ -317,17 +314,87 @@ mod test {
     }
 
     #[test]
+    fn decimal_digits() {
+        assert!(QueryTest::new("numeric literals",
+                vec![Token {
+                    loc: TokenLoc {
+                        starts_at: 0,
+                        len: 2,
+                    },
+                    con: TokenContent::NumberLiteral("91".to_string()),
+                }],
+                "91",
+            ).run().is_ok());
+    }
+
+    #[test]
+    fn multiple_tokens() {
+        assert!(QueryTest::new("multiple tokens",
+                vec![Token {
+                    loc: TokenLoc {
+                        starts_at: 0,
+                        len: 1,
+                    },
+                    con: TokenContent::Identifier("x".to_string()),
+                },
+                Token {
+                    loc: TokenLoc {
+                        starts_at: 2,
+                        len: 2,
+                    },
+                    con: TokenContent::NumberLiteral("91".to_string()),
+                }],
+                "x 91",
+        ).run().is_ok());
+    }
+
+    #[test]
+    fn string_literal() {
+        assert!(QueryTest::new("string literal",
+                vec![Token {
+                    loc: TokenLoc {
+                        starts_at: 0,
+                        len: 14,
+                    },
+                    con: TokenContent::StringLiteral("\"hello, world\"".to_string()),
+                }],
+                "\"hello, world\"",
+        ).run().is_ok());
+    }
+
+    #[test]
     fn lex_queries() {
         let mut tester = QueryTester::new();
-        tester.add_test(QueryTest::new("numeric literals",
+        tester.add_test(QueryTest::new("create query",
             vec![Token {
                 loc: TokenLoc {
                     starts_at: 0,
-                    len: 2,
+                    len: 5,
                 },
-                con: TokenContent::NumberLiteral("91".to_string()),
+                con: TokenContent::Element("@root".to_string()),
+            },
+            Token {
+                loc: TokenLoc {
+                    starts_at: 6,
+                    len: 6,
+                },
+                con: TokenContent::Insert,
+            },
+            Token {
+                loc: TokenLoc {
+                    starts_at: 13,
+                    len: 3,
+                },
+                con: TokenContent::New,
+            },
+            Token {
+                loc: TokenLoc {
+                    starts_at: 17,
+                    len: 7,
+                },
+                con: TokenContent::Identifier("Element".to_string()),
             }],
-            "91",
+            "@root insert new Element",
         ));
 
         tester.run_all();

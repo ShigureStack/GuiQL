@@ -6,12 +6,12 @@ pub struct TokenLoc {
 
 #[derive(PartialEq, Clone, Debug)]
 pub enum TokenContent {
+    Element(String),
+    Identifier(String),
     NumberLiteral(String),
     StringLiteral(String),
-    Identifier(String),
     BraceLeft,
     BraceRight,
-    Create,
     Component,
     Const,
     Delete,
@@ -22,9 +22,11 @@ pub enum TokenContent {
     Func,
     If,
     Int,
+    Insert,
     Key,
     Let,
     Match,
+    New,
     Number,
     StringKeyword,
     Tag,
@@ -37,7 +39,6 @@ pub enum TokenContent {
 impl TokenContent {
     pub fn from_str(word: &str) -> Option<Self> {
         match word {
-            "create" => Some(Self::Create),
             "component" => Some(Self::Component),
             "const" => Some(Self::Const),
             "delete" => Some(Self::Delete),
@@ -48,9 +49,11 @@ impl TokenContent {
             "func" => Some(Self::Func),
             "if" => Some(Self::If),
             "int" => Some(Self::Int),
+            "insert" => Some(Self::Insert),
             "key" => Some(Self::Key),
             "let" => Some(Self::Let),
             "match" => Some(Self::Match),
+            "new" => Some(Self::New),
             "number" => Some(Self::Number),
             "string" => Some(Self::StringKeyword),
             "tag" => Some(Self::Tag),
