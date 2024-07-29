@@ -11,7 +11,6 @@
 ## Reserved keywords
 
 ```
-create
 component
 const
 delete
@@ -22,9 +21,11 @@ for
 func
 if
 int
+insert
 key
 let
 match
+new
 number
 string
 tag
