@@ -19,7 +19,7 @@ pub struct Tokenizer<'a>
     full_idx_count: u32,
 }
 
-const MAX_IDX_VALUE: u32 = 4294967295;
+const MAX_IDX_VALUE: u32 = u32::MAX;
 
 impl<'a> Tokenizer<'a> {
     pub fn new(input: &'a str) -> Self {
