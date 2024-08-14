@@ -10,6 +10,7 @@ pub enum TokenizerErr {
 }
 
 pub type TokenResult = Result<Token, TokenizerErr>;
+pub type TokenizationResult = Result<(), TokenizerErr>;
 
 pub struct Tokenizer<'a>
 {
@@ -127,7 +128,7 @@ impl<'a> Tokenizer<'a> {
             len: 0,
         };
 
-        if let Some(pending) = &*self.pending.borrow_mut() {
+        if let Some(pending) = self.pending.take() {
             loc = pending.loc;
 
             match &pending.con {
@@ -223,12 +224,64 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
+    fn set_pending(&mut self, token: Token) -> TokenizationResult {
+        assert!(self.pending.replace(Some(token)).is_none());
+        Ok(())
+    }
+
+    fn set_pending_or_err(&mut self, res: TokenResult) -> TokenizationResult {
+        match res {
+            Ok(token) => {
+                self.set_pending(token)
+            }
+            Err(err) => Err(err),
+        }
+    }
+
+    fn dispatch_char(&mut self, c: char) -> TokenizationResult {
+        match c {
+            'a'..='z' | 'A'..='Z' => {
+                let res = self.lex_alphabetical_chars();
+                self.set_pending_or_err(res)
+            }
+            '0'..='9' => {
+                let res = self.lex_number_literal();
+                self.set_pending_or_err(res)
+            }
+            '"' => {
+                let res = self.lex_string_literal();
+                self.set_pending_or_err(res)
+            }
+            '@' => {
+                let res = self.lex_element_identifier();
+                self.set_pending_or_err(res)
+            }
+            _ => {
+                Err(TokenizerErr::UnexpectedToken)
+            }
+        }
+    }
+
     pub fn next(&mut self) -> Option<TokenResult> {
         while let Some(&c) = self.itr.peek() {
             if c.is_whitespace() {
                 self.advance();
                 continue;
-            } else if c.is_digit(10) {
+            }
+
+            match self.dispatch_char(c) {
+                Ok(..) => {
+                    if let Some(token) = self.pending.take() {
+                        return Some(Ok(token));
+                    } else {
+                        panic!("no pending token")
+                    }
+                }
+                Err(err) => {
+                    return Some(Err(err));
+                }
+            }
+            /*else if c.is_digit(10) {
                 return Some(self.lex_number_literal());
             } else if c.is_alphabetic() {
                 return Some(self.lex_alphabetical_chars());
@@ -236,7 +289,7 @@ impl<'a> Tokenizer<'a> {
                 return Some(self.lex_string_literal());
             } else if c == '@' {
                 return Some(self.lex_element_identifier());
-            }
+            }*/
         };
         None
     }
