@@ -1,3 +1,21 @@
+#[derive(PartialEq, Clone, Debug)]
+pub enum ItemContent {
+    ComponentDeclaration,
+    Query,
+}
+
+#[derive(PartialEq, Clone, Copy, Debug)]
+pub struct ItemLoc {
+    pub starts_at: u32,
+    pub len: u32,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Item {
+    pub con: ItemContent,
+    pub loc: ItemLoc,
+}
+
 #[derive(PartialEq, Clone, Copy, Debug)]
 pub struct TokenLoc {
     pub starts_at: u32,
