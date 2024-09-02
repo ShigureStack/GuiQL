@@ -1,1 +1,1 @@
-# GuiQL.rs
+# GuiQL

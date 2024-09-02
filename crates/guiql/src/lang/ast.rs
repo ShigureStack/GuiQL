@@ -1,30 +1,30 @@
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum ItemContent {
     ComponentDeclaration,
-    Query,
+    Node,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub struct ItemLoc {
     pub starts_at: u32,
     pub len: u32,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Item {
     pub con: ItemContent,
     pub loc: ItemLoc,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub struct TokenLoc {
     pub starts_at: u32,
     pub len: u32,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum TokenContent {
-    Element(String),
+    Anchor(String),
     Identifier(String),
     NumberLiteral(String),
     StringLiteral(String),
@@ -52,6 +52,7 @@ pub enum TokenContent {
     With,
     Or,
     Pub,
+    Replace,
 }
 
 impl TokenContent {
@@ -79,6 +80,7 @@ impl TokenContent {
             "with" => Some(Self::With),
             "or" => Some(Self::Or),
             "pub" => Some(Self::Pub),
+            "replace" => Some(Self::Replace),
             _ => None,
         }
     }
@@ -92,8 +94,32 @@ impl TokenContent {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Token {
     pub loc: TokenLoc,
     pub con: TokenContent,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NodeLoc {
+    start: u32,
+    end: u32,
+}
+
+pub trait Node {
+    fn loc(&mut self) -> NodeLoc;
+    fn set_loc(&mut self, loc: NodeLoc);
+}
+
+pub trait HasChildren {
+    fn append_child<T: Node>(&mut self, node: T);
+    fn children(&mut self) -> Vec<Box<dyn Node>>;
+}
+
+pub trait Query: Node {
+
+}
+
+pub trait Scope: Node + HasChildren {
+
 }

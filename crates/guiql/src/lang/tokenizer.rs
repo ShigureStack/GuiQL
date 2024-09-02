@@ -1,7 +1,7 @@
 use std::{cell::RefCell, iter::Peekable, str::Chars};
 use crate::lang::ast::*;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum TokenizerErr {
     UnterminatedStringLiteral,
     UnexpectedToken,
@@ -167,13 +167,13 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    fn lex_element_identifier(&mut self) -> TokenResult {
+    fn lex_anchor(&mut self) -> TokenResult {
         if let Some(&c) = self.itr.peek() {
             let mut loc = TokenLoc {
                 starts_at: self.current_idx,
                 len: 0,
             };
-            if c != '@' {
+            if c != '#' {
                 return Err(TokenizerErr::InvalidElementIdentifier);
             }
 
@@ -202,7 +202,7 @@ impl<'a> Tokenizer<'a> {
 
             return Ok(Token {
                 loc,
-                con: TokenContent::Element(identifier),
+                con: TokenContent::Anchor(identifier),
             });
         } else {
             return Err(TokenizerErr::InvalidElementIdentifier);
@@ -252,8 +252,8 @@ impl<'a> Tokenizer<'a> {
                 let res = self.lex_string_literal();
                 self.set_pending_or_err(res)
             }
-            '@' => {
-                let res = self.lex_element_identifier();
+            '#' => {
+                let res = self.lex_anchor();
                 self.set_pending_or_err(res)
             }
             _ => {
@@ -424,7 +424,7 @@ mod test {
                     starts_at: 0,
                     len: 5,
                 },
-                con: TokenContent::Element("@root".to_string()),
+                con: TokenContent::Anchor("#root".to_string()),
             },
             Token {
                 loc: TokenLoc {
@@ -447,7 +447,7 @@ mod test {
                 },
                 con: TokenContent::Identifier("Element".to_string()),
             }],
-            "@root insert new Element",
+            "#root insert new Element",
         ));
 
         tester.run_all();
