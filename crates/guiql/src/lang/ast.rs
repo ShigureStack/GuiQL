@@ -1,49 +1,45 @@
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum ItemContent {
     ComponentDeclaration,
-    Query,
+    Node,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub struct ItemLoc {
     pub starts_at: u32,
     pub len: u32,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Item {
     pub con: ItemContent,
     pub loc: ItemLoc,
 }
 
-#[derive(PartialEq, Clone, Copy, Debug)]
+#[derive(Eq, PartialEq, Clone, Copy, Debug)]
 pub struct TokenLoc {
     pub starts_at: u32,
     pub len: u32,
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub enum TokenContent {
-    Element(String),
+    Anchor(String),
     Identifier(String),
     NumberLiteral(String),
     StringLiteral(String),
     BraceLeft,
     BraceRight,
-    Component,
-    Const,
     Delete,
     Else,
     Enum,
     FromKeyword,
     For,
-    Func,
     If,
     Int,
     Insert,
     Key,
     Let,
-    Match,
     New,
     Number,
     StringKeyword,
@@ -52,25 +48,22 @@ pub enum TokenContent {
     With,
     Or,
     Pub,
+    Replace,
 }
 
 impl TokenContent {
     pub fn from_str(word: &str) -> Option<Self> {
         match word {
-            "component" => Some(Self::Component),
-            "const" => Some(Self::Const),
             "delete" => Some(Self::Delete),
             "else" => Some(Self::Else),
             "enum" => Some(Self::Enum),
             "from" => Some(Self::FromKeyword),
             "for" => Some(Self::For),
-            "func" => Some(Self::Func),
             "if" => Some(Self::If),
             "int" => Some(Self::Int),
             "insert" => Some(Self::Insert),
             "key" => Some(Self::Key),
             "let" => Some(Self::Let),
-            "match" => Some(Self::Match),
             "new" => Some(Self::New),
             "number" => Some(Self::Number),
             "string" => Some(Self::StringKeyword),
@@ -79,6 +72,7 @@ impl TokenContent {
             "with" => Some(Self::With),
             "or" => Some(Self::Or),
             "pub" => Some(Self::Pub),
+            "replace" => Some(Self::Replace),
             _ => None,
         }
     }
@@ -92,8 +86,32 @@ impl TokenContent {
     }
 }
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(Eq, PartialEq, Clone, Debug)]
 pub struct Token {
     pub loc: TokenLoc,
     pub con: TokenContent,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct NodeLoc {
+    start: u32,
+    end: u32,
+}
+
+pub trait Node {
+    fn loc(&mut self) -> NodeLoc;
+    fn set_loc(&mut self, loc: NodeLoc);
+}
+
+pub trait HasChildren {
+    fn append_child<T: Node>(&mut self, node: T);
+    fn children(&mut self) -> Vec<Box<dyn Node>>;
+}
+
+pub trait Query: Node {
+
+}
+
+pub trait Scope: Node + HasChildren {
+
 }
