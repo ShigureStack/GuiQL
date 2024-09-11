@@ -1,9 +1,17 @@
 # Getting started with GuiQL
 
-##
+## Installation
+
+Install `catcher`: A reference implementation of GuiQL Server
 
 ```sh
-$ guiql
+cargo install catcher
+```
+
+## Try on cli
+
+```sh
+$ catcher
 query >
 ```
 

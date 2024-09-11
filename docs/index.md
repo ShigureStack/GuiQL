@@ -7,7 +7,7 @@ hero:
   actions:
     - theme: brand
       text: Getting started
-      link: /guide/getting-started
+      link: /guide/getting-started/
     - theme: brand
       text: Try on playground
       link: https://play.guiql.com
