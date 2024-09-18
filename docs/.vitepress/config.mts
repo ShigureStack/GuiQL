@@ -17,7 +17,17 @@ export default defineConfig({
         text: 'Guide',
         link: '/guide/',
         items: [
-          { text: 'Getting started', link: '/guide/getting-started' },
+          {
+            text: 'Getting started',
+            link: '/guide/getting-started/',
+            items: [
+              { text: 'Create a project', link: '/guide/getting-started/create-a-project' },
+              { text: 'Counter', link: '/guide/getting-started/counter' },
+            ],
+          },
+          { text: 'Context', link: '/guide/context' },
+          { text: 'Custom element', link: '/guide/custom-element'},
+          { text: 'Main loop', link: '/guide/main-loop'},
         ]
       },
       {
@@ -29,6 +39,7 @@ export default defineConfig({
             link: '/reference/statements/',
             items: [
               { text: 'CREATE', link: '/reference/statements/create' },
+              { text: 'IMPORT', link: '/reference/statements/import' },
               { text: 'REGISTER VIEW', link: '/reference/statements/register-view' },
               { text: 'REPLACE', link: '/reference/statements/replace' },
               { text: 'SELECT', link: '/reference/statements/select' },

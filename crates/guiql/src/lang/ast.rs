@@ -108,10 +108,6 @@ pub trait HasChildren {
     fn children(&mut self) -> Vec<Box<dyn Node>>;
 }
 
-pub trait Query: Node {
+pub trait Query: Node {}
 
-}
-
-pub trait Scope: Node + HasChildren {
-
-}
+pub trait Scope: Node + HasChildren {}

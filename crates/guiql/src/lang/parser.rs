@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 
-use crate::lang::tokenizer::{Tokenizer, TokenResult};
+use crate::lang::tokenizer::{TokenResult, Tokenizer};
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 enum ParserState {
@@ -32,6 +32,10 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn from_str(input: &'a str) -> Self {
+        Self::new(Tokenizer::new(input))
+    }
+
     pub fn parse_all(&mut self) {
         self.advance();
     }
@@ -39,7 +43,10 @@ impl<'a> Parser<'a> {
     fn advance(&mut self) {
         match self.tokenizer.next() {
             Some(res) => {
-                assert!(self.state.replace(ParserState::PendingToken(res)).is_ready());
+                assert!(self
+                    .state
+                    .replace(ParserState::PendingToken(res))
+                    .is_ready());
             }
             None => {
                 assert!(self.state.replace(ParserState::EOF).is_ready());
@@ -47,7 +54,5 @@ impl<'a> Parser<'a> {
         }
     }
 
-    pub fn next() {
-
-    }
+    pub fn next() {}
 }
