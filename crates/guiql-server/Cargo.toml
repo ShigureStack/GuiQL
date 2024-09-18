@@ -1,0 +1,9 @@
+[package]
+name = "catcher"
+edition = "2021"
+version.workspace = true
+default-run = "catcher"
+
+[dependencies]
+guiql = { workspace = true }
+tokio = { workspace = true }
