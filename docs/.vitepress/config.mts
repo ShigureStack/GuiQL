@@ -39,6 +39,7 @@ export default defineConfig({
             link: '/reference/statements/',
             items: [
               { text: 'CREATE', link: '/reference/statements/create' },
+              { text: 'IMPORT', link: '/reference/statements/import' },
               { text: 'REGISTER VIEW', link: '/reference/statements/register-view' },
               { text: 'REPLACE', link: '/reference/statements/replace' },
               { text: 'SELECT', link: '/reference/statements/select' },
