@@ -1,6 +1,2 @@
 target
 debug
-docs/.vitepress/dist
-docs/.vitepress/cache
-node_modules
-package-lock.json
