@@ -1,3 +1,3 @@
 # GuiQL Guide
 
-## [Getting started](./getting-started)
+## [Getting started](./getting-started/)
