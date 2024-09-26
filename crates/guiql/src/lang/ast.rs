@@ -1,19 +1,26 @@
-#[derive(Eq, PartialEq, Clone, Debug)]
-pub enum ItemContent {
-    ComponentDeclaration,
-    Node,
-}
-
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
-pub struct ItemLoc {
+pub struct ASTItemLoc {
     pub starts_at: u32,
     pub len: u32,
 }
 
 #[derive(Eq, PartialEq, Clone, Debug)]
-pub struct Item {
-    pub con: ItemContent,
-    pub loc: ItemLoc,
+pub enum QueryKind {
+    Create {
+    },
+    Replace {}
+}
+
+#[derive(Eq, PartialEq, Clone, Debug)]
+pub enum ASTItem {
+    // Items
+    Module { name: String, loc: ASTItemLoc },
+    Element { name: String, loc: ASTItemLoc },
+    Query { query: QueryKind },
+
+    // Expressions
+    ArrayExpression {},
+    LiteralExpression {},
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
@@ -53,7 +60,7 @@ pub enum TokenContent {
 
 impl TokenContent {
     pub fn from_str(word: &str) -> Option<Self> {
-        match word {
+        match word.to_lowercase().as_str() {
             "delete" => Some(Self::Delete),
             "else" => Some(Self::Else),
             "enum" => Some(Self::Enum),

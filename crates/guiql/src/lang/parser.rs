@@ -1,10 +1,11 @@
 use std::cell::RefCell;
 
-use crate::lang::tokenizer::{TokenResult, Tokenizer};
+use crate::lang::tokenizer::{TokenResult, Tokenizer, TokenizerErr};
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 enum ParserState {
     PendingToken(TokenResult),
+    PendingTokenizeError(TokenizerErr),
     EOF,
     #[default]
     Ready,
@@ -17,11 +18,26 @@ impl ParserState {
             _ => false,
         }
     }
+    pub fn has_pending_token(&self) -> Option<&TokenResult> {
+        match self {
+            ParserState::PendingToken(token) => Some(token),
+            _ => None,
+        }
+    }
 }
 
 pub struct Parser<'a> {
     tokenizer: Tokenizer<'a>,
     state: RefCell<ParserState>,
+}
+
+pub enum ParseError {}
+
+pub enum ParserResult {
+    Continue,
+    TokenizeError(TokenizerErr),
+    ParseError(ParseError),
+    Done,
 }
 
 impl<'a> Parser<'a> {
@@ -40,7 +56,38 @@ impl<'a> Parser<'a> {
         self.advance();
     }
 
-    fn advance(&mut self) {
+    fn parse_token(&mut self, res: TokenResult) {
+        match res {
+            Ok(token) => {
+                match token.con {
+                    _ => {}
+                };
+            }
+            Err(err) => {
+                assert!(self
+                    .state
+                    .replace(ParserState::PendingTokenizeError(err))
+                    .is_ready());
+            }
+        }
+    }
+
+    fn advance(&mut self) -> ParserResult {
+        match self.state.take() {
+            ParserState::Ready => {
+                self.consume_token();
+                ParserResult::Continue
+            }
+            ParserState::PendingToken(token) => {
+                self.parse_token(token);
+                ParserResult::Continue
+            }
+            ParserState::PendingTokenizeError(err) => ParserResult::TokenizeError(err.clone()),
+            ParserState::EOF => ParserResult::Done,
+        }
+    }
+
+    fn consume_token(&mut self) {
         match self.tokenizer.next() {
             Some(res) => {
                 assert!(self
