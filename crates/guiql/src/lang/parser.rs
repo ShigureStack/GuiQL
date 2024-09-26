@@ -1,11 +1,12 @@
 use std::cell::RefCell;
 
 use crate::lang::tokenizer::{TokenResult, Tokenizer, TokenizerErr};
+use crate::lang::ast::{ASTItem, TokenContent};
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 enum ParserState {
     PendingToken(TokenResult),
-    PendingTokenizeError(TokenizerErr),
+    PendingParseError(ParseError),
     EOF,
     #[default]
     Ready,
@@ -26,16 +27,24 @@ impl ParserState {
     }
 }
 
+pub struct PendingASTItem {
+    item: ASTItem,
+}
+
 pub struct Parser<'a> {
     tokenizer: Tokenizer<'a>,
     state: RefCell<ParserState>,
+    pending_item: Option<PendingASTItem>,
 }
 
-pub enum ParseError {}
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ParseError {
+    UnexpectedToken,
+    TokenizeError(TokenizerErr),
+}
 
 pub enum ParserResult {
     Continue,
-    TokenizeError(TokenizerErr),
     ParseError(ParseError),
     Done,
 }
@@ -45,6 +54,7 @@ impl<'a> Parser<'a> {
         Self {
             tokenizer,
             state: RefCell::new(ParserState::default()),
+            pending_item: None,
         }
     }
 
@@ -56,18 +66,21 @@ impl<'a> Parser<'a> {
         self.advance();
     }
 
+    fn set_pending_err(&mut self, err: ParseError) {
+        assert!(self.state.replace(ParserState::PendingParseError(err)).is_ready());
+    }
+
     fn parse_token(&mut self, res: TokenResult) {
         match res {
             Ok(token) => {
                 match token.con {
-                    _ => {}
-                };
+                    _ => {
+                        self.set_pending_err(ParseError::UnexpectedToken);
+                    }
+                }
             }
             Err(err) => {
-                assert!(self
-                    .state
-                    .replace(ParserState::PendingTokenizeError(err))
-                    .is_ready());
+                self.set_pending_err(ParseError::TokenizeError(err));
             }
         }
     }
@@ -75,31 +88,29 @@ impl<'a> Parser<'a> {
     fn advance(&mut self) -> ParserResult {
         match self.state.take() {
             ParserState::Ready => {
-                self.consume_token();
+                match self.consume_token() {
+                    Some(res) => {
+                        assert!(self
+                            .state
+                            .replace(ParserState::PendingToken(res))
+                            .is_ready());
+                    }
+                    None => {
+                        assert!(self.state.replace(ParserState::EOF).is_ready());
+                    }
+                }
                 ParserResult::Continue
             }
             ParserState::PendingToken(token) => {
                 self.parse_token(token);
                 ParserResult::Continue
             }
-            ParserState::PendingTokenizeError(err) => ParserResult::TokenizeError(err.clone()),
+            ParserState::PendingParseError(err) => ParserResult::ParseError(err.clone()),
             ParserState::EOF => ParserResult::Done,
         }
     }
 
-    fn consume_token(&mut self) {
-        match self.tokenizer.next() {
-            Some(res) => {
-                assert!(self
-                    .state
-                    .replace(ParserState::PendingToken(res))
-                    .is_ready());
-            }
-            None => {
-                assert!(self.state.replace(ParserState::EOF).is_ready());
-            }
-        }
+    fn consume_token(&mut self) -> Option<TokenResult> {
+        self.tokenizer.next()
     }
-
-    pub fn next() {}
 }
