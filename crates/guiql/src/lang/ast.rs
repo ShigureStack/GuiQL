@@ -4,11 +4,20 @@ pub struct ASTItemLoc {
     pub len: u32,
 }
 
+#[derive(Eq, PartialEq, Clone, Debug, Default)]
+pub struct CreateQuery {
+    pub elm_name: String,
+}
+
+#[derive(Eq, PartialEq, Clone, Debug, Default)]
+pub struct ReplaceQuery {
+
+}
+
 #[derive(Eq, PartialEq, Clone, Debug)]
 pub enum QueryKind {
-    Create {
-    },
-    Replace {}
+    Create(),
+    Replace(),
 }
 
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -37,6 +46,7 @@ pub enum TokenContent {
     StringLiteral(String),
     BraceLeft,
     BraceRight,
+    Create,
     Delete,
     Else,
     Enum,
@@ -61,6 +71,7 @@ pub enum TokenContent {
 impl TokenContent {
     pub fn from_str(word: &str) -> Option<Self> {
         match word.to_lowercase().as_str() {
+            "create" => Some(Self::Create),
             "delete" => Some(Self::Delete),
             "else" => Some(Self::Else),
             "enum" => Some(Self::Enum),

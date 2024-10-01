@@ -1,7 +1,8 @@
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::lang::tokenizer::{TokenResult, Tokenizer, TokenizerErr};
-use crate::lang::ast::{ASTItem, TokenContent};
+use crate::lang::ast::{ASTItem, Token, TokenContent, CreateQuery};
 
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 enum ParserState {
@@ -19,6 +20,8 @@ impl ParserState {
             _ => false,
         }
     }
+
+    #[allow(dead_code)]
     pub fn has_pending_token(&self) -> Option<&TokenResult> {
         match self {
             ParserState::PendingToken(token) => Some(token),
@@ -27,21 +30,27 @@ impl ParserState {
     }
 }
 
-pub struct PendingASTItem {
-    item: ASTItem,
+struct PendingASTItem {
+    pub item: ASTItem,
 }
 
 pub struct Parser<'a> {
-    tokenizer: Tokenizer<'a>,
+    tokenizer: Rc<RefCell<Tokenizer<'a>>>,
     state: RefCell<ParserState>,
-    pending_item: Option<PendingASTItem>,
+    result: Option<PendingASTItem>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum ParseError {
+    /// The token type is unexpected.
     UnexpectedToken,
+    /// Incorrect syntax
+    SyntaxError,
     TokenizeError(TokenizerErr),
 }
+
+pub type ParseResult = Result<(), ParseError>;
+type TokenizeResult = Result<Token, ParseError>;
 
 pub enum ParserResult {
     Continue,
@@ -50,16 +59,16 @@ pub enum ParserResult {
 }
 
 impl<'a> Parser<'a> {
-    pub fn new(tokenizer: Tokenizer<'a>) -> Self {
+    pub fn new(tokenizer: RefCell<Tokenizer<'a>>) -> Self {
         Self {
-            tokenizer,
+            tokenizer: Rc::new(tokenizer),
             state: RefCell::new(ParserState::default()),
-            pending_item: None,
+            result: None,
         }
     }
 
     pub fn from_str(input: &'a str) -> Self {
-        Self::new(Tokenizer::new(input))
+        Self::new(RefCell::new(Tokenizer::new(input)))
     }
 
     pub fn parse_all(&mut self) {
@@ -70,10 +79,51 @@ impl<'a> Parser<'a> {
         assert!(self.state.replace(ParserState::PendingParseError(err)).is_ready());
     }
 
+    fn set_state_from_parse_result(&mut self, res: ParseResult) {
+        if let Err(err) = res {
+            self.set_pending_err(err);
+        }
+    }
+
+    /// Consume token and handle tokenize error and returns it as [`ParseError`].
+    /// If the inner tokenizer has no consumable token, it returns [`ParseError::SyntaxError`].
+    fn consume_token_or_err(&mut self) -> TokenizeResult {
+        match self.consume_token() {
+            Some(res) => {
+                match res {
+                    Ok(tok) => Ok(tok),
+                    Err(err) => Err(ParseError::TokenizeError(err)),
+                }
+            }
+            None => {
+                Err(ParseError::SyntaxError)
+            }
+        }
+    }
+
+    fn parse_create(&mut self) -> ParseResult {
+        let tok = self.consume_token_or_err()?;
+
+        let mut query = CreateQuery::default();
+
+        if let TokenContent::Identifier(elm_name) = tok.con {
+            query.elm_name = elm_name;
+            let tok = self.consume_token_or_err()?;
+
+            return Ok(());
+        }
+
+        Err(ParseError::UnexpectedToken)
+    }
+
     fn parse_token(&mut self, res: TokenResult) {
         match res {
             Ok(token) => {
                 match token.con {
+                    TokenContent::Create => {
+                        let res = self.parse_create();
+                        self.set_state_from_parse_result(res);
+                    }
                     _ => {
                         self.set_pending_err(ParseError::UnexpectedToken);
                     }
@@ -111,6 +161,6 @@ impl<'a> Parser<'a> {
     }
 
     fn consume_token(&mut self) -> Option<TokenResult> {
-        self.tokenizer.next()
+        self.tokenizer.borrow_mut().next()
     }
 }
