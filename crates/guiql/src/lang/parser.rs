@@ -1,4 +1,4 @@
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use crate::lang::tokenizer::{TokenResult, Tokenizer, TokenizerErr};
@@ -37,7 +37,7 @@ struct PendingASTItem {
 pub struct Parser<'a> {
     tokenizer: Rc<RefCell<Tokenizer<'a>>>,
     state: RefCell<ParserState>,
-    result: Option<PendingASTItem>,
+    result: Cell<Option<PendingASTItem>>,
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -63,7 +63,7 @@ impl<'a> Parser<'a> {
         Self {
             tokenizer: Rc::new(tokenizer),
             state: RefCell::new(ParserState::default()),
-            result: None,
+            result: None.into(),
         }
     }
 
@@ -71,15 +71,15 @@ impl<'a> Parser<'a> {
         Self::new(RefCell::new(Tokenizer::new(input)))
     }
 
-    pub fn parse_all(&mut self) {
+    pub fn parse_all(&self) {
         self.advance();
     }
 
-    fn set_pending_err(&mut self, err: ParseError) {
+    fn set_pending_err(&self, err: ParseError) {
         assert!(self.state.replace(ParserState::PendingParseError(err)).is_ready());
     }
 
-    fn set_state_from_parse_result(&mut self, res: ParseResult) {
+    fn set_state_from_parse_result(&self, res: ParseResult) {
         if let Err(err) = res {
             self.set_pending_err(err);
         }
@@ -87,7 +87,7 @@ impl<'a> Parser<'a> {
 
     /// Consume token and handle tokenize error and returns it as [`ParseError`].
     /// If the inner tokenizer has no consumable token, it returns [`ParseError::SyntaxError`].
-    fn consume_token_or_err(&mut self) -> TokenizeResult {
+    fn consume_token_or_err(&self) -> TokenizeResult {
         match self.consume_token() {
             Some(res) => {
                 match res {
@@ -101,7 +101,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_create(&mut self) -> ParseResult {
+    fn parse_create(&self) -> ParseResult {
         let tok = self.consume_token_or_err()?;
 
         let mut query = CreateQuery::default();
@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
         Err(ParseError::UnexpectedToken)
     }
 
-    fn parse_token(&mut self, res: TokenResult) {
+    fn parse_token(&self, res: TokenResult) {
         match res {
             Ok(token) => {
                 match token.con {
@@ -135,7 +135,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn advance(&mut self) -> ParserResult {
+    fn advance(&self) -> ParserResult {
         match self.state.take() {
             ParserState::Ready => {
                 match self.consume_token() {
@@ -160,7 +160,7 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn consume_token(&mut self) -> Option<TokenResult> {
+    fn consume_token(&self) -> Option<TokenResult> {
         self.tokenizer.borrow_mut().next()
     }
 }
