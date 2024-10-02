@@ -4,6 +4,8 @@ use std::rc::Rc;
 use crate::lang::tokenizer::{TokenResult, Tokenizer, TokenizerErr};
 use crate::lang::ast::{ASTItem, Token, TokenContent, CreateQuery};
 
+pub mod view;
+
 #[derive(Debug, Default, Clone, Eq, PartialEq)]
 enum ParserState {
     PendingToken(TokenResult),
@@ -89,15 +91,11 @@ impl<'a> Parser<'a> {
     /// If the inner tokenizer has no consumable token, it returns [`ParseError::SyntaxError`].
     fn consume_token_or_err(&self) -> TokenizeResult {
         match self.consume_token() {
-            Some(res) => {
-                match res {
+            Some(res) => match res {
                     Ok(tok) => Ok(tok),
                     Err(err) => Err(ParseError::TokenizeError(err)),
-                }
             }
-            None => {
-                Err(ParseError::SyntaxError)
-            }
+            None => Err(ParseError::SyntaxError),
         }
     }
 
@@ -109,6 +107,8 @@ impl<'a> Parser<'a> {
         if let TokenContent::Identifier(elm_name) = tok.con {
             query.elm_name = elm_name;
             let tok = self.consume_token_or_err()?;
+
+
 
             return Ok(());
         }
@@ -124,14 +124,10 @@ impl<'a> Parser<'a> {
                         let res = self.parse_create();
                         self.set_state_from_parse_result(res);
                     }
-                    _ => {
-                        self.set_pending_err(ParseError::UnexpectedToken);
-                    }
+                    _ => self.set_pending_err(ParseError::UnexpectedToken),
                 }
             }
-            Err(err) => {
-                self.set_pending_err(ParseError::TokenizeError(err));
-            }
+            Err(err) => self.set_pending_err(ParseError::TokenizeError(err)),
         }
     }
 
@@ -139,15 +135,13 @@ impl<'a> Parser<'a> {
         match self.state.take() {
             ParserState::Ready => {
                 match self.consume_token() {
-                    Some(res) => {
+                    Some(res) =>
                         assert!(self
                             .state
                             .replace(ParserState::PendingToken(res))
-                            .is_ready());
-                    }
-                    None => {
-                        assert!(self.state.replace(ParserState::EOF).is_ready());
-                    }
+                            .is_ready()),
+                    None =>
+                        assert!(self.state.replace(ParserState::EOF).is_ready()),
                 }
                 ParserResult::Continue
             }
@@ -155,7 +149,7 @@ impl<'a> Parser<'a> {
                 self.parse_token(token);
                 ParserResult::Continue
             }
-            ParserState::PendingParseError(err) => ParserResult::ParseError(err.clone()),
+            ParserState::PendingParseError(err) => ParserResult::ParseError(err),
             ParserState::EOF => ParserResult::Done,
         }
     }
