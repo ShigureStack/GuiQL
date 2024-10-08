@@ -1,10 +1,12 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::lang::{
-    ast::ASTItem,
+    ast::ViewRoot,
     parser::{ParseError, ParseResult},
     tokenizer::{TokenResult, Tokenizer},
 };
+
+use super::Parser;
 
 pub enum ViewParserResult {
     Continue,
@@ -33,20 +35,11 @@ impl ViewParserState {
 pub struct ViewParser<'a> {
     tokenizer: Rc<RefCell<Tokenizer<'a>>>,
     state: RefCell<ViewParserState>,
-    pending: RefCell<Option<ASTItem>>,
+    pending: RefCell<Option<ViewRoot>>,
 }
 
-impl<'a> ViewParser<'a> {
-    pub fn new(tokenizer: Rc<RefCell<Tokenizer<'a>>>) -> Self {
-        ViewParser {
-            tokenizer,
-            state: RefCell::new(ViewParserState::default()),
-            pending: None.into(),
-        }
-    }
-
-    /// No inifinite loop will occur.
-    pub fn parse_all(&self) -> ParseResult {
+impl<'a> Parser<ViewRoot> for ViewParser<'a> {
+    fn parse_all(&self) -> ParseResult<ViewRoot> {
         loop {
             match self.advance() {
                 ViewParserResult::ParseError(err) => return Err(err),
@@ -55,6 +48,16 @@ impl<'a> ViewParser<'a> {
                 }
                 _ => {}
             }
+        }
+    }
+}
+
+impl<'a> ViewParser<'a> {
+    pub fn new(tokenizer: Rc<RefCell<Tokenizer<'a>>>) -> Self {
+        ViewParser {
+            tokenizer,
+            state: RefCell::new(ViewParserState::default()),
+            pending: None.into(),
         }
     }
 
