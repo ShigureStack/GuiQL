@@ -1,43 +1,16 @@
-use std::cell::{Cell, RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::lang::ast::{ASTItem, CreateQuery, QueryKind, Token, TokenContent};
+use crate::lang::ast::{CreateQuery, Module, Token, TokenContent};
+use crate::lang::parser::view::ViewParser;
 use crate::lang::tokenizer::{TokenResult, Tokenizer, TokenizerErr};
 
-use self::view::ViewParser;
+use super::ast::ViewRoot;
 
 pub mod view;
 
-#[derive(Debug, Default, Clone, Eq, PartialEq)]
-enum ParserState {
-    PendingToken(TokenResult),
-    PendingParseError(ParseError),
-    EOF,
-    #[default]
-    Ready,
-}
-
-impl ParserState {
-    pub fn is_ready(&self) -> bool {
-        match self {
-            ParserState::Ready => true,
-            _ => false,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn has_pending_token(&self) -> Option<&TokenResult> {
-        match self {
-            ParserState::PendingToken(token) => Some(token),
-            _ => None,
-        }
-    }
-}
-
-pub struct Parser<'a> {
-    tokenizer: Rc<RefCell<Tokenizer<'a>>>,
-    state: RefCell<ParserState>,
-    pending: RefCell<Option<ASTItem>>,
+pub trait Parser<T> {
+    fn parse_all(&self) -> ParseResult<T>;
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -49,20 +22,64 @@ pub enum ParseError {
     TokenizeError(TokenizerErr),
 }
 
-pub type ParseResult = Result<ASTItem, ParseError>;
+pub type ParseResult<T> = Result<T, ParseError>;
 type TokenizeResult = Result<Token, ParseError>;
 
-pub enum ParserResult {
-    Continue,
-    ParseError(ParseError),
-    Done,
+#[derive(Debug, Default, Clone, Eq, PartialEq)]
+enum ModuleParserState {
+    PendingToken(TokenResult),
+    PendingParseError(ParseError),
+    EOF,
+    #[default]
+    Ready,
 }
 
-impl<'a> Parser<'a> {
+impl ModuleParserState {
+    pub fn is_ready(&self) -> bool {
+        match self {
+            ModuleParserState::Ready => true,
+            _ => false,
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn has_pending_token(&self) -> Option<&TokenResult> {
+        match self {
+            ModuleParserState::PendingToken(token) => Some(token),
+            _ => None,
+        }
+    }
+}
+
+pub struct ModuleParser<'a> {
+    tokenizer: Rc<RefCell<Tokenizer<'a>>>,
+    state: RefCell<ModuleParserState>,
+    pending: RefCell<Option<Module>>,
+}
+
+pub enum ModuleParserResult {
+    Continue,
+    ParseError(ParseError),
+    Done(Module),
+}
+
+impl<'a> Parser<Module> for ModuleParser<'a> {
+    fn parse_all(&self) -> ParseResult<Module> {
+        loop {
+            match self.advance() {
+                ModuleParserResult::Done(ast) => return Ok(ast),
+                ModuleParserResult::ParseError(err) => return Err(err),
+                _ => {}
+            }
+        }
+    }
+}
+
+impl<'a> ModuleParser<'a> {
     pub fn new(tokenizer: Rc<RefCell<Tokenizer<'a>>>) -> Self {
-        Self {
+        ModuleParser {
             tokenizer,
-            state: RefCell::new(ParserState::default()),
+            state: RefCell::new(ModuleParserState::default()),
             pending: None.into(),
         }
     }
@@ -71,24 +88,14 @@ impl<'a> Parser<'a> {
         Self::new(RefCell::new(Tokenizer::new(input)).into())
     }
 
-    pub fn parse_all(&self) -> ParseResult {
-        loop {
-            match self.advance() {
-                ParserResult::Done => return Ok(self.pending.take().expect("No pending result")),
-                ParserResult::ParseError(err) => return Err(err),
-                _ => {}
-            }
-        }
-    }
-
     fn set_pending_err(&self, err: ParseError) {
         assert!(self
             .state
-            .replace(ParserState::PendingParseError(err))
+            .replace(ModuleParserState::PendingParseError(err))
             .is_ready());
     }
 
-    fn set_state_from_parse_result(&self, res: ParseResult) {
+    fn set_state_from_parse_result<T>(&self, res: ParseResult<T>) {
         if let Err(err) = res {
             self.set_pending_err(err);
         }
@@ -106,21 +113,20 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn parse_view(&self) -> ParseResult {
+    fn parse_view(&self) -> ParseResult<ViewRoot> {
         ViewParser::new(self.tokenizer.clone()).parse_all()
     }
 
-    fn parse_create(&self) -> ParseResult {
+    fn parse_create(&self) -> ParseResult<CreateQuery> {
         let mut query = CreateQuery::default();
 
         let tok = self.consume_token_or_err()?;
         if let TokenContent::Identifier(elm_name) = tok.con {
             query.elm_name = elm_name;
-            let view = self.parse_view()?;
-            return Ok(ASTItem::Query {
-                query: QueryKind::Create(),
-            });
-        }
+            query.view = self.parse_view()?;
+
+            return Ok(query);
+        };
 
         Err(ParseError::UnexpectedToken)
     }
@@ -138,24 +144,26 @@ impl<'a> Parser<'a> {
         }
     }
 
-    fn advance(&self) -> ParserResult {
+    fn advance(&self) -> ModuleParserResult {
         match self.state.take() {
-            ParserState::Ready => {
+            ModuleParserState::Ready => {
                 match self.consume_token() {
                     Some(res) => assert!(self
                         .state
-                        .replace(ParserState::PendingToken(res))
+                        .replace(ModuleParserState::PendingToken(res))
                         .is_ready()),
-                    None => assert!(self.state.replace(ParserState::EOF).is_ready()),
+                    None => assert!(self.state.replace(ModuleParserState::EOF).is_ready()),
                 }
-                ParserResult::Continue
+                ModuleParserResult::Continue
             }
-            ParserState::PendingToken(token) => {
+            ModuleParserState::PendingToken(token) => {
                 self.parse_token(token);
-                ParserResult::Continue
+                ModuleParserResult::Continue
             }
-            ParserState::PendingParseError(err) => ParserResult::ParseError(err),
-            ParserState::EOF => ParserResult::Done,
+            ModuleParserState::PendingParseError(err) => ModuleParserResult::ParseError(err),
+            ModuleParserState::EOF => {
+                ModuleParserResult::Done(self.pending.take().expect("No pending result"))
+            }
         }
     }
 

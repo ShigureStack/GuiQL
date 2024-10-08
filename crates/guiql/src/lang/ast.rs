@@ -7,29 +7,18 @@ pub struct ASTItemLoc {
 #[derive(Eq, PartialEq, Clone, Debug, Default)]
 pub struct CreateQuery {
     pub elm_name: String,
+    pub view: ViewRoot,
 }
 
 #[derive(Eq, PartialEq, Clone, Debug, Default)]
-pub struct ReplaceQuery {
+pub struct ReplaceQuery {}
 
-}
-
-#[derive(Eq, PartialEq, Clone, Debug)]
-pub enum QueryKind {
-    Create(),
-    Replace(),
-}
+#[derive(Eq, PartialEq, Clone, Debug, Default)]
+pub struct ViewRoot {}
 
 #[derive(Eq, PartialEq, Clone, Debug)]
-pub enum ASTItem {
-    // Items
-    Module { name: String, loc: ASTItemLoc },
-    Element { name: String, loc: ASTItemLoc },
-    Query { query: QueryKind },
-
-    // Expressions
-    ArrayExpression {},
-    LiteralExpression {},
+pub struct Module {
+    pub name: String,
 }
 
 #[derive(Eq, PartialEq, Clone, Copy, Debug)]
